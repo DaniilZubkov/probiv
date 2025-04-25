@@ -9,7 +9,10 @@ from phonenumbers import geocoder, carrier, timezone
 import asyncio
 import requests
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import db
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Command
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher.filters.state import StatesGroup, State
 import datetime
 import time
 from db import Database
@@ -18,18 +21,18 @@ import json
 from dadata import DadataAsync, Dadata
 
 
-bot = Bot('YOUR BOT TOKEN')
-token = 'API DADATA KEY'
-secret = 'DADATA`S SECRET KEY'
+bot = Bot('7783210062:AAFC_H7lRdIPdcSrdbII_ETa0PY1pcTM25M')
+token = 'e06e442308d4e5f6af20defac93ff1cf2683cd40'
+secret = '195254f0af3eb4a629fb543a460bf49418ccdedc'
 db = Database('database.db')
 cost = 1000000
 WALLET = 'YOUR CRYPTO WALLET HERE'
 
-dp = Dispatcher(bot)
+dp = Dispatcher(bot, storage=MemoryStorage())
 dadata = DadataAsync(token, secret)
 dadata_for_inn = Dadata(token)
-GROUP_CHAT_ID = 'ID ДЛЯ СОЗДАННОГО ВАМИ ЧАТА В ТЕЛЕГРАМЕ ЧТОБЫ ПРИНИМАТЬ ОПАЛТУ'
-BOT_NICKNAME = 'gb_bog_by_burn_bot'
+GROUP_CHAT_ID = -1002192140565
+BOT_NICKNAME = 'ultra_parcer_robot'
 
 
 
@@ -41,7 +44,17 @@ USER_AGENTS = [
     'geoapiDemoAgent5'
 ]
 
+
 company_keyboard2 = ''
+
+
+class Renting(StatesGroup):
+    rent_time = State()
+
+
+
+
+
 
 # Перевод подписки в дни
 def days_to_seconds(days):
@@ -61,8 +74,11 @@ def time_sub_day(get_time):
 
 @dp.message_handler(commands=['start'])
 async def start_command(message: types.Message):
-    await message.answer('Откройте мир возожностей с нами - мы анализируем все, что есть в сети интернет превращая открытые источники в знания для поиска информации\n\n'
+    greeting_photo_path = 'fotos/lightning.jpg'
+    await message.answer_photo(photo=open(greeting_photo_path, "rb"), caption='Откройте мир возожностей с нами - мы анализируем все, что есть в сети интернет превращая открытые источники в знания для поиска информации\n\n'
                          '<b>Выберите действие:</b>', parse_mode='html', reply_markup=main_keyboard)
+
+
 
     # Проверка подписки на старте и выдача пробного доступа
 
@@ -72,13 +88,18 @@ async def start_command(message: types.Message):
         db.set_signup(message.from_user.id, 'done')
         user_id = message.from_user.id
         if db.get_sub_status(user_id):
+            success_photo_path = 'fotos/success.jpg'
             time_sub = int(time.time() + days_to_seconds(1)) - int(time.time())
             db.set_time_sub(user_id, time_sub)
-            await message.answer(f'✅ Вам был выдан <b>пробный переод на 1 день</b>', parse_mode='html')
+            await message.answer_photo(photo=open(success_photo_path, "rb"), caption=f'✅ <b>Вам был выдан пробный переод на 1 день</b>\n\n'
+                                                                                     f'🎉 <i>Поздравляем</i>', parse_mode='html')
         else:
+            success_photo_path = 'fotos/success.jpg'
             time_sub = int(time.time() + days_to_seconds(1))
             db.set_time_sub(user_id, time_sub)
-            await message.answer(f'✅ Вам был выдан <b>пробный период на 1 день</b>', parse_mode='html')
+            await message.answer_photo(photo=open(success_photo_path, "rb"),
+                                       caption=f'✅ <b>Вам был выдан пробный переод на 1 день</b>\n\n'
+                                               f'🎉 <i>Поздравляем</i>', parse_mode='html')
         start_command = message.text
         referrer_id = str(start_command[7:])
         if str(referrer_id) != "":
@@ -90,14 +111,18 @@ async def start_command(message: types.Message):
                 if db.get_sub_status(user_id):
                     time_sub = int(time.time() + days_to_seconds(1)) - int(time.time())
                     db.set_time_sub(user_id, time_sub)
-                    await message.answer(f'✅ Вам был выдан <b>пробный период на 1 день</b>', parse_mode='html')
+                    await message.answer_photo(photo=open(success_photo_path, "rb"),
+                                               caption=f'✅ <b>Вам был выдан пробный переод на 1 день</b>\n\n'
+                                                       f'🎉 <i>Поздравляем</i>', parse_mode='html')
                 else:
                     time_sub = int(time.time() + days_to_seconds(1))
                     db.set_time_sub(user_id, time_sub)
-                    await message.answer(f'✅ Вам был выдан <b>пробный период на 1 день</b>', parse_mode='html')
+                    await message.answer_photo(photo=open(success_photo_path, "rb"),
+                                               caption=f'✅ <b>Вам был выдан пробный переод на 1 день</b>\n\n'
+                                                       f'🎉 <i>Поздравляем</i>', parse_mode='html')
                 try:
-                    await bot.send_message(referrer_id,
-                                           "✅ По вашей ссылке зарегистрировался новый пользователь.\n\n Вы получили доступ на 10 деней!")
+                    await bot.send_photo(referrer_id, photo=open(success_photo_path, "rb"),
+                                           caption="✅ <b>По вашей ссылке зарегистрировался новый пользователь.</b>\n\n <i>🎉 Вы получили доступ на 10 деней! Поздравляем</i>", parse_mode='html')
                     if db.get_sub_status(referrer_id):
                         time_sub = int(time.time() + days_to_seconds(10)) - int(time.time())
                         db.set_time_sub(referrer_id, time_sub)
@@ -112,20 +137,29 @@ async def start_command(message: types.Message):
             pass
     else:
         if db.get_sub_status(message.from_user.id):
-            await message.answer('✅ Есть доступ к боту')
+            success_photo_path = 'fotos/success.jpg'
+            await message.answer_photo(photo=open(success_photo_path, "rb"),
+                                       caption=f'✅ <b>Есть доступ к боту</b>', parse_mode='html')
         else:
-            await message.answer(
-                f'🚨 Доступ закончился! {message.from_user.first_name}, нам нужно это исправить!\n\n', reply_markup=payment_keyboard1)
+            error_photo_path = 'fotos/error.jpg'
+            await message.answer_photo(photo=open(error_photo_path, "rb"),
+                caption=f'🚨 <b>Доступ закончился! {message.from_user.first_name}, нам нужно это исправить!</b>\n\n', reply_markup=payment_keyboard1)
+
+
+
+
 
 @dp.callback_query_handler(lambda query: True)
-async def callback_handler(callback_query: types.CallbackQuery):
+async def callback_handler(callback_query: types.CallbackQuery, state: FSMContext):
     global current_time_sub
     global cost
     global WALLET
     # REQUEST COMMANDS
+
     if callback_query.data == 'requests_commands':
+        questions_photo_path = 'fotos/questions.jpg'
         await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-        await callback_query.message.answer('⬇️ ***Примеры команд для ввода:***\n\n'
+        await callback_query.message.answer_photo(photo=open(questions_photo_path, "rb"), caption='⬇️ ***Примеры команд для ввода:***\n\n'
                                             '📱 `79999999999` - для поиска по номеру телефона\n'
                                             '📨 `elonmusk@spacex.com` - для поиска по Email\n'
                                             '🏘 `москва, сухонская, 11, 89` - найти ***кадастровый номер*** в таком формате!!!\n\n'
@@ -141,8 +175,8 @@ async def callback_handler(callback_query: types.CallbackQuery):
                 '<b>Выберите действие:</b>', parse_mode='html', reply_markup=main_keyboard)
 
     # COMPANY SEARCH
-    if callback_query.data == callback_query.data:
-        company_name = callback_query.data
+    if callback_query.data.startswith('company_'):
+        company_name = callback_query.data.replace('company_', '', 1)
         try:
             result = await dadata.suggest("party", company_name)
             write_inf(result, 'users.json')
@@ -176,177 +210,215 @@ async def callback_handler(callback_query: types.CallbackQuery):
 
     # VIEW PROFILE
     if callback_query.data == 'my_acc':
-        user_nickname = f'👤Ваш никнейм: <b>{db.get_nickname(callback_query.from_user.id)}</b>'
+        user_nickname = f'👤 Ваш никнейм: <b>{db.get_nickname(callback_query.from_user.id)}</b>'
         user_sub = time_sub_day(db.get_time_sub(callback_query.from_user.id))
         if user_sub == False:
-            user_sub = '❌На данный момент <b>у вас нет доступа</b>'
-        user_sub = f'\n🔋Подписка: <b>{user_sub}</b>'
+            user_sub = '❌ На данный момент <b>у вас нет доступа</b>'
+        user_sub = f'\n🔋 Подписка: <b>{user_sub}</b>'
         await bot.send_message(callback_query.from_user.id, user_nickname + user_sub, parse_mode='html', reply_markup=payment_keyboard1)
 
 
     # REFERAL SISTEM
-    if callback_query.data == 'partners_refs':
-        await callback_query.message.answer(
-            f'🤖 <b>За каждого приглашенного человека в бота вы получите 10 деней доступа!</b>\n\n🚀 Ваша реферальная ссылка: https://t.me/{BOT_NICKNAME}?start={callback_query.from_user.id}\n\n',
-            parse_mode='html')
-
-    # PAYMENT
+        # ПОПОЛНЕНИЕ КОШЕЛЬКА
     if callback_query.data == 'pay_the_call':
-        await callback_query.message.answer(
-            '🤖Наш тариф:\n1 месяц = 10 USDT\n6 месяцев = 45 USDT\n1 год = 100 USDT\n\n<b>❗ Вы можете вводить промокоды от разработчика. (УЛСОВНО ДИЧЬ)</b>\n\nВыберите тариф:',
-            reply_markup=payment_keyboard, parse_mode='html')
-    try:
-        if callback_query.data == 'month':
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('Выбери сеть для оплаты USDT:', reply_markup=network1)
-        if callback_query.data == 'TRC1':
-            WALLET = 'TWBv2DH5cpHP8UgRj9wdCcr2rWkJTgGJoo'
-            cost = 1000000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 10 USDT на адрес кошелька:***\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть TRC20)***',
-                                                parse_mode='MARKDOWN')
+        bank_photo_path = 'fotos/bank.jpg'
+        await callback_query.message.answer_photo(photo=open(bank_photo_path, "rb"),
+                                                      caption=f'🤖 Наш тариф:\n1 месяц = 5 USDT\n6 месяцев = 25 USDT\n1 год = 55 USDT\n\n<b>❗ Чтобы пополнить доступ нужно пополнить кошелек. Вы можете вводить промокоды от разработчика.</b>\n\n💵 Кошелек: <b>{db.get_user_wallet(callback_query.from_user.id)} USDT</b>\n\n<i>Выберите тариф:</i>',
+                                                      reply_markup=payment_keyboard, parse_mode='html')
 
-        if callback_query.data == 'TON1':
-            WALLET = 'UQCZWX_JeVoi9ajcpXKAp1F8soOH2YIv6HitZeGUE16gGVfk'
-            cost = 1000000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 10 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть TON)***',
-                                                parse_mode='MARKDOWN')
-        if callback_query.data == 'ARB1':
-            WALLET = '0x4B908f33111e968970bD4c5b1f6CE4014ad4F92E'
-            cost = 1000000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 10 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть ARB)***',
-                                                parse_mode='MARKDOWN')
-        if callback_query.data == 'ERC1':
-            WALLET = '0x4B908f33111e968970bD4c5b1f6CE4014ad4F92E'
-            cost = 1000000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 10 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть ERC20)***',
-                                                parse_mode='MARKDOWN')
-
-        # NETWORK 2
-        if callback_query.data == 'halfyear':
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('Выбери сеть для оплаты USDT:', reply_markup=network2)
-        if callback_query.data == 'TRC2':
-            WALLET = 'TWBv2DH5cpHP8UgRj9wdCcr2rWkJTgGJoo'
-            cost = 4500000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 45 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть TRC20)***',
-                                                parse_mode='MARKDOWN')
-        if callback_query.data == 'TON2':
-            WALLET = 'UQCZWX_JeVoi9ajcpXKAp1F8soOH2YIv6HitZeGUE16gGVfk'
-            cost = 4500000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 45 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть TON)***',
-                                                parse_mode='MARKDOWN')
-        if callback_query.data == 'ARB2':
-            WALLET = '0x4B908f33111e968970bD4c5b1f6CE4014ad4F92E'
-            cost = 4500000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 45 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть ARB)***',
-                                                parse_mode='MARKDOWN')
-        if callback_query.data == 'ERC2':
-            WALLET = '0x4B908f33111e968970bD4c5b1f6CE4014ad4F92E'
-            cost = 4500000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 45 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть ERC20)***',
-                                                parse_mode='MARKDOWN')
-
-        # NETWORK 3
-        if callback_query.data == 'year':
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('Выбери сеть для оплаты USDT:', reply_markup=network3)
-        if callback_query.data == 'TRC3':
-            WALLET = 'TWBv2DH5cpHP8UgRj9wdCcr2rWkJTgGJoo'
-            cost = 10000000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 100 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть TRC20)***',
-                                                parse_mode='MARKDOWN')
-        if callback_query.data == 'TON3':
-            WALLET = 'UQCZWX_JeVoi9ajcpXKAp1F8soOH2YIv6HitZeGUE16gGVfk'
-            cost = 10000000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 100 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть TON)***',
-                                                parse_mode='MARKDOWN')
-        if callback_query.data == 'ARB3':
-            WALLET = '0x4B908f33111e968970bD4c5b1f6CE4014ad4F92E'
-            cost = 10000000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 100 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть ARB)***',
-                                                parse_mode='MARKDOWN')
-        if callback_query.data == 'ERC3':
-            WALLET = '0x4B908f33111e968970bD4c5b1f6CE4014ad4F92E'
-            cost = 10000000
-            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-            await callback_query.message.answer('***Переведите строго 100 USDT*** на адрес кошелька:\n\n'
-                                                f'`{WALLET}`\n\n❗***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть ERC)***',
-                                                parse_mode='MARKDOWN')
-
-        action, user_id = callback_query.data.split(':')
-        user_id = int(user_id)
-        if action == 'success':
-            if cost == 1000000:
-                if db.get_sub_status(user_id):
+    if callback_query.data == 'month':
+            success_photo_path = 'fotos/success.jpg'
+            fail_photo_path = 'fotos/error.jpg'
+            if float(db.get_user_wallet(callback_query.from_user.id)) >= 5:
+                db.set_user_wallet_take(callback_query.from_user.id, 5)
+                if db.get_sub_status(callback_query.from_user.id):
                     time_sub = int(time.time() + days_to_seconds(30)) - int(time.time())
-                    db.set_time_sub(user_id, time_sub)
+                    db.set_time_sub(callback_query.from_user.id, time_sub)
+                    await bot.send_photo(photo=open(success_photo_path, "rb"), chat_id=callback_query.from_user.id,
+                                         caption='✅ <b>Вы успешно преобрели доступ на 1 месяц</b>\n\n'
+                                                 '<i>🎉 Поздравляем!</i>', parse_mode='html')
                 else:
                     time_sub = int(time.time() + days_to_seconds(30))
-                    db.set_time_sub(user_id, time_sub)
-                    await bot.answer_callback_query(callback_query.id)
-                    await bot.send_message(user_id, '✅Вы успешно преобрели <b>доступ на 1 месяц</b>',
-                                           parse_mode='html')
+                    db.set_time_sub(callback_query.from_user.id, time_sub)
+                    await bot.send_photo(photo=open(success_photo_path, "rb"), chat_id=callback_query.from_user.id,
+                                         caption='✅ <b>Вы успешно преобрели доступ на 1 месяц</b>\n\n'
+                                                 '<i>🎉 Поздравляем!</i>', parse_mode='html')
+            else:
+                await callback_query.message.answer_photo(photo=open(fail_photo_path, "rb"),
+                                                          caption=f'❌ <b>Недостаточно средств на кошельке!</b>\n\n'
+                                                                  f'<i>👇 Пополните кошелек по кнопке ниже чтобы оплатить доступ!</i>',
+                                                          parse_mode='html',
+                                                          reply_markup=back_command_keboard)
 
-            if cost == 4500000:
-                if db.get_sub_status(user_id):
+    if callback_query.data == 'halfyear':
+            success_photo_path = 'fotos/success.jpg'
+            fail_photo_path = 'fotos/error.jpg'
+            if float(db.get_user_wallet(callback_query.from_user.id)) >= 25:
+                db.set_user_wallet_take(callback_query.from_user.id, 25)
+                if db.get_sub_status(callback_query.from_user.id):
                     time_sub = int(time.time() + days_to_seconds(180)) - int(time.time())
-                    db.set_time_sub(user_id, time_sub)
-                    await bot.answer_callback_query(callback_query.id)
-                    await bot.send_message(user_id, '✅Вы успешно преобрели <b>доступ на 6 месяцев</b>',
-                                           parse_mode='html')
+                    db.set_time_sub(callback_query.from_user.id, time_sub)
+                    await bot.send_photo(photo=open(success_photo_path, "rb"), chat_id=callback_query.from_user.id,
+                                         caption='✅ <b>Вы успешно преобрели доступ на 6 месяцев</b>\n\n'
+                                                 '<i>🎉 Поздравляем!</i>', parse_mode='html')
                 else:
                     time_sub = int(time.time() + days_to_seconds(180))
-                    db.set_time_sub(user_id, time_sub)
-                    await bot.answer_callback_query(callback_query.id)
-                    await bot.send_message(user_id, '✅Вы успешно преобрели <b>доступ на 6 месяцев</b>',
-                                           parse_mode='html')
+                    db.set_time_sub(callback_query.from_user.id, time_sub)
+                    await bot.send_photo(photo=open(success_photo_path, "rb"), chat_id=callback_query.from_user.id,
+                                         caption='✅ <b>Вы успешно преобрели доступ на 6 месяцев</b>\n\n'
+                                                 '<i>🎉 Поздравляем!</i>', parse_mode='html')
+            else:
+                await callback_query.message.answer_photo(photo=open(fail_photo_path, "rb"),
+                                                          caption=f'❌ <b>Недостаточно средств на кошельке!</b>\n\n'
+                                                                  f'<i>👇 Пополните кошелек по кнопке ниже чтобы оплатить доступ!</i>',
+                                                          parse_mode='html', reply_markup=payment_keyboard1)
 
-            if cost == 10000000:
-                if db.get_sub_status(user_id):
-                    time_sub = int(time.time() + days_to_seconds(360)) - int(time.time())
-                    db.set_time_sub(user_id, time_sub)
-                    await bot.answer_callback_query(callback_query.id)
-                    await bot.send_message(user_id, '✅Вы успешно преобрели <b>доступ на 1 год</b>',
-                                           parse_mode='html')
+    if callback_query.data == 'year':
+            success_photo_path = 'fotos/success.jpg'
+            fail_photo_path = 'fotos/error.jpg'
+            if float(db.get_user_wallet(callback_query.from_user.id)) >= 55:
+                db.set_user_wallet_take(callback_query.from_user.id, 55)
+                if db.get_sub_status(callback_query.from_user.id):
+                    time_sub = int(time.time() + days_to_seconds(365)) - int(time.time())
+                    db.set_time_sub(callback_query.from_user.id, time_sub)
+                    await bot.send_photo(photo=open(success_photo_path, "rb"), chat_id=callback_query.from_user.id,
+                                         caption='✅ <b>Вы успешно преобрели доступ на 1 год</b>\n\n'
+                                                 '<i>🎉 Поздравляем!</i>', parse_mode='html')
                 else:
-                    time_sub = int(time.time() + days_to_seconds(360))
-                    db.set_time_sub(user_id, time_sub)
-                    await bot.answer_callback_query(callback_query.id)
-                    await bot.send_message(user_id, '✅Вы успешно преобрели <b>доступ на 1 год</b>',
-                                           parse_mode='html')
+                    time_sub = int(time.time() + days_to_seconds(365))
+                    db.set_time_sub(callback_query.from_user.id, time_sub)
+                    await bot.send_photo(photo=open(success_photo_path, "rb"), chat_id=callback_query.from_user.id,
+                                         caption='✅ <b>Вы успешно преобрели доступ на 1 год</b>\n\n'
+                                                 '<i>🎉 Поздравляем!</i>', parse_mode='html')
+            else:
+                await callback_query.message.answer_photo(photo=open(fail_photo_path, "rb"),
+                                                          caption=f'❌ <b>Недостаточно средств на кошельке!</b>\n\n'
+                                                                  f'<i>👇 Пополните кошелек по кнопке ниже чтобы оплатить доступ!</i>',
+                                                          parse_mode='html', reply_markup=payment_keyboard1)
 
-        if callback_query.data == 'invalid':
-            await bot.answer_callback_query(callback_query.id)
-            await bot.send_message(user_id,
-                                   '❌Похоже что-то пошло не так: <b>возникла проблема с обработкой данных</b>\n'
-                                   '<b>Если</b> вы уверены, что все данные верны обратитесь в поддержку: @pump_supporting_bot',
-                                   parse_mode='html')
+    if callback_query.data == 'bye_loot':
+            card_photo_path = 'fotos/bank_cards.jpg'
+            await callback_query.message.answer_photo(photo=open(card_photo_path, "rb"),
+                                                      caption='🤖 <b>Выбери сеть для оплаты USDT:</b>',
+                                                      parse_mode='html',
+                                                      reply_markup=network1)
+
+    if callback_query.data == 'TON':
+            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
+            card_photo_path = 'fotos/bank_cards.jpg'
+            NETWORK = 'TON'
+            WALLET = 'UQCZWX_JeVoi9ajcpXKAp1F8soOH2YIv6HitZeGUE16gGVfk'
+            db.set_wallet(callback_query.from_user.id, 'UQCZWX_JeVoi9ajcpXKAp1F8soOH2YIv6HitZeGUE16gGVfk')
+            db.set_network(callback_query.from_user.id, 'TON')
+            await state.set_state(Renting.rent_time)
+            await callback_query.message.answer_photo(photo=open(card_photo_path, "rb"),
+                                                      caption='🤖 <b>Введите сумму которую вы хотите пополнить на кошелек (в USDT, без точек и запятых):</b>',
+                                                      parse_mode='html', reply_markup=back_command_keboard)
+
+    if callback_query.data == 'TRC':
+            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
+            card_photo_path = 'fotos/bank_cards.jpg'
+            NETWORK = 'TRC'
+            WALLET = 'TWBv2DH5cpHP8UgRj9wdCcr2rWkJTgGJoo'
+            db.set_wallet(callback_query.from_user.id, 'TWBv2DH5cpHP8UgRj9wdCcr2rWkJTgGJoo')
+            db.set_network(callback_query.from_user.id, 'TRC')
+            await state.set_state(Renting.rent_time)
+            await callback_query.message.answer_photo(photo=open(card_photo_path, "rb"),
+                                                      caption='🤖 <b>Введите сумму которую вы хотите пополнить на кошелек (в USDT, без точек и запятых):</b>',
+                                                      parse_mode='html', reply_markup=back_command_keboard)
+
+    if callback_query.data == 'ERC':
+            await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
+            card_photo_path = 'fotos/bank_cards.jpg'
+            NETWORK = 'ERC'
+            WALLET = '0x4B908f33111e968970bD4c5b1f6CE4014ad4F92E'
+            db.set_wallet(callback_query.from_user.id, '0x4B908f33111e968970bD4c5b1f6CE4014ad4F92E')
+            db.set_network(callback_query.from_user.id, 'ERC')
+            await state.set_state(Renting.rent_time)
+            await callback_query.message.answer_photo(photo=open(card_photo_path, "rb"),
+                                                      caption='🤖 <b>Введите сумму которую вы хотите пополнить на кошелек (в USDT, без точек и запятых):</b>',
+                                                      parse_mode='html', reply_markup=back_command_keboard)
+
+
+
+    # проверка оплаты и подтверждение
+    try:
+            action, user_id = callback_query.data.split(':')
+            user_id = int(user_id)
+            rent = float(db.get_rent(user_id))
+            message_photo_path = 'fotos/message.jpg'
+            if action == 'success':
+                db.set_user_wallet_make(user_id, rent)
+                await bot.send_photo(photo=open(message_photo_path, "rb"), chat_id=user_id,
+                                     caption=f'✅ <b>Пополнение на кошелек прошло успешно!</b>\n\n'
+                                             f'💵 Кошелек: <b>{db.get_user_wallet(user_id)} USDT</b>', parse_mode='html',
+                                     reply_markup=back_command_keboard)
+
+            if action == 'invalid':
+                error_photo_path = 'fotos/error.jpg'
+                await bot.answer_callback_query(callback_query.id)
+                await bot.send_photo(photo=open(error_photo_path, "rb"), chat_id=user_id,
+                                     caption='❌ <b>Похоже что-то пошло не так. Возможно возникла проблема с обработкой данных.</b>\n\n'
+                                             '<i>Если вы уверены, что все данные верны обратитесь в поддержку: @pump_supporting_bot</i>',
+                                     parse_mode='html', reply_markup=back_command_keboard)
     except Exception:
         pass
 
+    # if callback_query.data == callback_query.data:
+    #     company_name = callback_query.data
+    #     try:
+    #         result = await dadata.suggest("party", company_name)
+    #         write_inf(result, 'users.json')
+    #         useresult = read_inf('users.json')
+    #         for user in useresult:
+    #             kpp = user['data']['kpp']
+    #             inn = user['data']['inn']
+    #             ogrn = user['data']['ogrn']
+    #             address = user['data']['address']['value']
+    #             country_name = user['data']['address']['data']['country']
+    #             main = user['data']['management']['name']
+    #             post_roll = user['data']['management']['post']
+    #             post_roll_date = datetime.datetime.fromtimestamp(user['data']['management']['start_date'] / 1000)
+    #             post_roll_date_ref = post_roll_date.strftime('%Y-%m-%d %H:%M:%S')
+    #             type_of_company = user['data']['type']
+    #             data_ogrn = datetime.datetime.fromtimestamp(user['data']['ogrn_date'] / 1000)
+    #             data_ogrn_ref = data_ogrn.strftime('%Y-%m-%d %H:%M:%S')
+    #             await callback_query.message.answer(f'🛠️ ***Компания:*** {company_name}\n'
+    #                                                 f'├ ***Адрес предприятия:*** `{address}`\n'
+    #                                                 f'├ ***КПП компании:*** `{kpp}`\n'
+    #                                                 f'├ ***ИНН компании:*** `{inn}`\n'
+    #                                                 f'├ ***ОГРН компании:*** `{ogrn}`\n'
+    #                                                 f'└ ***Тип компании:*** `{type_of_company}`\n\n'
+    #                                                 f'👷🏻‍♂️ ***Управленец:*** {main}\n'
+    #                                                 f'🏆 ***Должность:*** {post_roll}\n'
+    #                                                 f'👑 ***Дата назначения управленца:*** {post_roll_date_ref}\n'
+    #                                                 f'📄 ***Дата огрн:*** {data_ogrn_ref}\n'
+    #                                                 f'🌎 ***Страна:*** {country_name}', parse_mode='MARKDOWN')
+    #     except Exception:
+    #         pass
 
+
+
+
+# БЛОК ОПЛАТЫ
+def calculate_sum_from_rubs_to_dollars(num):
+    return round(num / 90.00, 2)
+
+
+@dp.message_handler(state=Renting.rent_time)
+async def loot_for_wallet(message: types.Message, state: FSMContext):
+    global cost, user_count, sum
+    bank_photo_path = 'fotos/bank.jpg'
+    if message.text.isdigit():
+        sum = float(message.text)
+        await state.update_data(rent_time=float(message.text))
+        user_count = sum
+        await state.finish()
+        db.set_rent(message.from_user.id, float(message.text))
+        await message.answer_photo(photo=open(bank_photo_path, "rb"), caption=f'🤖 ***Переведите сумму ниже на адрес кошелька:***\n\n'
+                             f'`{db.get_wallet(message.from_user.id)}`\n\n'
+                             f'❗ ***Потом пришлите пришлите скриншот оплаты. В описании под скриншотом нужно вставить хэш транзакции, иначе бот не засчитает оплату. (сеть {db.get_network(message.from_user.id)})***\n\n'
+                             f'💵 К оплате: ***{db.get_rent(message.from_user.id)} USDT***', parse_mode='MARKDOWN', reply_markup=back_command_keboard)
 
 
 
@@ -440,7 +512,7 @@ async def company_handler(message: types.Message):
             useresult = read_inf('users.json')
             result = [user['value'] for user in useresult]
             for i in result:
-                button = InlineKeyboardButton(text=i, callback_data=i)
+                button = InlineKeyboardButton(text=i, callback_data=f'company_{i}')
                 company_keyboard.add(button)
             back = InlineKeyboardButton(text='🔙 Назад', callback_data='back_to_menu')
             company_keyboard.add(back)
@@ -491,23 +563,24 @@ async def inn_handler(message: types.Message):
 # PAYMENT_PART; TON; TRX; eth;
 @dp.message_handler(regexp='^0x[a-fA-F0-9]{64}$', content_types=['photo'])
 async def handle_transaction_eth(message: types.Message):
-    global succes_or_invalid
-    global cost
+    global succes_or_invalid, user_count
+    success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id
     succes_or_invalid = InlineKeyboardMarkup(inline_keyboard=[(
-        InlineKeyboardButton(text='✅Успешно', callback_data=f'success:{user_id}'),
-        InlineKeyboardButton(text='❌Не успешно', callback_data=f'invalid:{user_id}')
+        InlineKeyboardButton(text='✅ Успешно', callback_data=f'success:{user_id}'),
+        InlineKeyboardButton(text='❌ Не успешно', callback_data=f'invalid:{user_id}')
     )])
     pay_k = succes_or_invalid
     await message.forward(chat_id=GROUP_CHAT_ID)
-    await message.answer('✅Отлично! <b>Ваша заявка будет одобрена от 15 минут до 24 часов</b>\n\n'
-                         '<b>Если</b> будут вопросы обращайтесь в поддержку: @pump_supporting_bot', parse_mode='html')
-    await bot.send_message(GROUP_CHAT_ID, f'ETH {cost}', reply_markup=pay_k)
+    await message.answer_photo(photo=open(success_photo_path, "rb"), caption='✅ <b>Отлично! Ваша заявка будет одобрена от 15 минут до 24 часов</b>\n\n'
+                         '<i>Если будут вопросы обращайтесь в поддержку: @your_bot</i>', parse_mode='html', reply_markup=back_command_keboard)
+    await bot.send_message(GROUP_CHAT_ID, f'ETH {db.get_rent(message.from_user.id)} USDT', reply_markup=pay_k)
+
 
 @dp.message_handler(regexp='[a-fA-F0-9]{64}$', content_types=['photo'])
 async def handle_transaction_tron(message: types.Message):
-    global succes_or_invalid
-    global cost
+    global succes_or_invalid, user_count
+    success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id
     succes_or_invalid = InlineKeyboardMarkup(inline_keyboard=[(
         InlineKeyboardButton(text='✅Успешно', callback_data=f'success:{user_id}'),
@@ -515,13 +588,16 @@ async def handle_transaction_tron(message: types.Message):
     )])
     pay_k = succes_or_invalid
     await message.forward(chat_id=GROUP_CHAT_ID)
-    await message.answer('✅Отлично! <b>Ваша заявка будет одобрена от 15 минут до 24 часов</b>\n\n'
-                         '<b>Если</b> будут вопросы обращайтесь в поддержку: @pump_supporting_bot', parse_mode='html')
-    await bot.send_message(GROUP_CHAT_ID, f'TRX {cost}', reply_markup=pay_k)
+    await message.answer_photo(photo=open(success_photo_path, "rb"),
+                               caption='✅ <b>Отлично! Ваша заявка будет одобрена от 15 минут до 24 часов</b>\n\n'
+                                       '<i>Если будут вопросы обращайтесь в поддержку: @your_bot</i>', parse_mode='html', reply_markup=back_command_keboard)
+    await bot.send_message(GROUP_CHAT_ID, f'TRX {db.get_rent(message.from_user.id)} USDT', reply_markup=pay_k)
+
 
 @dp.message_handler(regexp='[a-fA-F0-9]{66}$', content_types=['photo'])
 async def handle_transaction_ton(message: types.Message):
-    global succes_or_invalid
+    global succes_or_invalid, user_count
+    success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id
     succes_or_invalid = InlineKeyboardMarkup(inline_keyboard=[(
         InlineKeyboardButton(text='✅Успешно', callback_data=f'success:{user_id}'),
@@ -529,10 +605,10 @@ async def handle_transaction_ton(message: types.Message):
     )])
     pay_k = succes_or_invalid
     await message.forward(chat_id=GROUP_CHAT_ID)
-    await message.answer('✅Отлично! <b>Ваша заявка будет одобрена от 15 минут до 24 часов</b>\n\n'
-                         '<b>Если</b> будут вопросы обращайтесь в поддержку: @pump_supporting_bot', parse_mode='html')
-    await bot.send_message(GROUP_CHAT_ID, f'TON {cost}', reply_markup=pay_k)
-
+    await message.answer_photo(photo=open(success_photo_path, "rb"),
+                               caption='✅ <b>Отлично! Ваша заявка будет одобрена от 15 минут до 24 часов</b>\n\n'
+                                       '<i>Если будут вопросы обращайтесь в поддержку: @your_bot</i>', parse_mode='html', reply_markup=back_command_keboard)
+    await bot.send_message(GROUP_CHAT_ID, f'TON {db.get_rent(message.from_user.id)}', reply_markup=pay_k)
 
 
 

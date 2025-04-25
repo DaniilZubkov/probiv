@@ -70,3 +70,84 @@ class Database:
                 return True
             else:
                 return False
+
+
+
+
+
+
+
+
+
+    def get_count_refers(self, user_id):
+        with self.connection:
+            result = self.cursor.execute("SELECT referal_count FROM users WHERE user_id=?", (user_id,)).fetchall()
+            for row in result:
+                count_refers = int(row[0])
+            return count_refers
+
+
+
+    def set_count_refers(self, user_id):
+        with self.connection:
+            current_count = self.get_count_refers(user_id)
+            new_count = int(current_count) + 1
+            return self.cursor.execute("UPDATE users SET referal_count=? WHERE user_id=?", (new_count, user_id,))
+
+
+
+    def get_user_wallet(self, user_id):
+        with self.connection:
+            result = self.cursor.execute("SELECT user_wallet FROM users WHERE user_id=?", (user_id,)).fetchall()
+            for row in result:
+                wallet = str(row[0])
+            return wallet
+
+    def set_user_wallet_make(self, user_id, county):
+        with self.connection:
+            current_wallet = self.get_user_wallet(user_id)
+            new_current_wallet = float(current_wallet) + county
+            return self.cursor.execute("UPDATE users SET user_wallet=? WHERE user_id=?", (new_current_wallet, user_id,))
+
+    def set_user_wallet_take(self, user_id, county):
+        with self.connection:
+            current_wallet = self.get_user_wallet(user_id)
+            new_current_wallet = float(current_wallet) - county
+            return self.cursor.execute("UPDATE users SET user_wallet=? WHERE user_id=?", (new_current_wallet, user_id,))
+
+
+
+    def set_wallet(self, user_id, wallet):
+        with self.connection:
+            return self.cursor.execute("UPDATE users SET wallet=? WHERE user_id=?", (wallet, user_id,))
+
+    def get_wallet(self, user_id):
+        with self.connection:
+            result = self.cursor.execute("SELECT wallet FROM users WHERE user_id=?", (user_id,)).fetchall()
+            for row in result:
+                wallet = str(row[0])
+            return wallet
+
+    def set_network(self, user_id, network):
+        with self.connection:
+            return self.cursor.execute("UPDATE users SET network=? WHERE user_id=?", (network, user_id,))
+
+    def get_network(self, user_id):
+        with self.connection:
+            result = self.cursor.execute("SELECT network FROM users WHERE user_id=?", (user_id,)).fetchall()
+            for row in result:
+                network = str(row[0])
+            return network
+
+    def set_rent(self, user_id, rent):
+        with self.connection:
+            return self.cursor.execute("UPDATE users SET rent=? WHERE user_id=?", (rent, user_id,))
+
+    def get_rent(self, user_id):
+        with self.connection:
+            result = self.cursor.execute("SELECT rent FROM users WHERE user_id=?", (user_id,)).fetchall()
+            for row in result:
+                rent = str(row[0])
+            return rent
+
+
