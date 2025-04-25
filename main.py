@@ -21,9 +21,9 @@ import json
 from dadata import DadataAsync, Dadata
 
 
-bot = Bot('7783210062:AAFC_H7lRdIPdcSrdbII_ETa0PY1pcTM25M')
-token = 'e06e442308d4e5f6af20defac93ff1cf2683cd40'
-secret = '195254f0af3eb4a629fb543a460bf49418ccdedc'
+bot = Bot('Your bot token')
+token = 'DADATA API KEY'
+secret = 'DADATA SECRET KEY'
 db = Database('database.db')
 cost = 1000000
 WALLET = 'YOUR CRYPTO WALLET HERE'
@@ -31,8 +31,8 @@ WALLET = 'YOUR CRYPTO WALLET HERE'
 dp = Dispatcher(bot, storage=MemoryStorage())
 dadata = DadataAsync(token, secret)
 dadata_for_inn = Dadata(token)
-GROUP_CHAT_ID = -1002192140565
-BOT_NICKNAME = 'ultra_parcer_robot'
+GROUP_CHAT_ID = 'ID CHATA GDE PRINIMAEM OPLATU'
+BOT_NICKNAME = 'YOUR BOT NICKNAME'
 
 
 
