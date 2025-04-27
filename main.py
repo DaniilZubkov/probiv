@@ -22,18 +22,17 @@ from aiogram.types import ParseMode
 from dadata import DadataAsync, Dadata
 
 
-bot = Bot('YOUR BOT TOKEN')
-token = 'API TOKEN DADATA'
-secret = 'API SECRET DADATA'
+bot = Bot('7783210062:AAFC_H7lRdIPdcSrdbII_ETa0PY1pcTM25M')
+token = 'e06e442308d4e5f6af20defac93ff1cf2683cd40'
+secret = '195254f0af3eb4a629fb543a460bf49418ccdedc'
 db = Database('database.db')
-cost = 1000000
-WALLET = 'YOUR CRYPTO WALLET HERE'
+
 
 dp = Dispatcher(bot, storage=MemoryStorage())
 dadata = DadataAsync(token, secret)
 dadata_for_inn = Dadata(token)
-GROUP_CHAT_ID = 'UR CHAT ID FOR PAYMENT'
-BOT_NICKNAME = 'YOUR BOT NICKNAME'
+GROUP_CHAT_ID = -1002192140565
+BOT_NICKNAME = 'ultra_parcer_robot'
 
 
 
@@ -48,8 +47,7 @@ USER_AGENTS = [
 
 class Renting(StatesGroup):
     rent_time = State()
-
-
+    send_photo = State()
 
 
 
@@ -175,10 +173,14 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
     # COMPANY SEARCH
     if callback_query.data.startswith('company_'):
         company_name = callback_query.data.replace('company_', '', 1)
+
+        error_photo_path = 'fotos/error.jpg'
+        company_photo_path = 'fotos/invite.jpg'
         try:
             result = await dadata.suggest("party", company_name)
             write_inf(result, 'users.json')
             useresult = read_inf('users.json')
+
             for user in useresult:
                 kpp = user['data']['kpp']
                 inn = user['data']['inn']
@@ -192,7 +194,13 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
                 type_of_company = user['data']['type']
                 data_ogrn = datetime.datetime.fromtimestamp(user['data']['ogrn_date'] / 1000)
                 data_ogrn_ref = data_ogrn.strftime('%Y-%m-%d %H:%M:%S')
-                await callback_query.message.answer(f'🛠️ ***Компания:*** {company_name}\n'
+
+                buttons = InlineKeyboardMarkup(row_width=1)
+                creator = InlineKeyboardButton("🚀 Тг создателя", url=f"https://t.me/+1A9f6ZFMJBgxMjRi")
+                back_to_menu = InlineKeyboardButton(text="🔙 Назад", callback_data='back_to_menu')
+                buttons.add(creator, back_to_menu)
+
+                await callback_query.message.answer_photo(photo=open(company_photo_path, "rb"), caption=f'🛠️ ***Компания:*** {company_name}\n'
                                                     f'├ ***Адрес предприятия:*** `{address}`\n'
                                                     f'├ ***КПП компании:*** `{kpp}`\n'
                                                     f'├ ***ИНН компании:*** `{inn}`\n'
@@ -202,33 +210,50 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
                                                     f'🏆 ***Должность:*** {post_roll}\n'
                                                     f'👑 ***Дата назначения управленца:*** {post_roll_date_ref}\n'
                                                     f'📄 ***Дата огрн:*** {data_ogrn_ref}\n'
-                                                    f'🌎 ***Страна:*** {country_name}', parse_mode='MARKDOWN')
+                                                    f'🌎 ***Страна:*** {country_name}', parse_mode='MARKDOWN', reply_markup=buttons)
         except Exception:
-            pass
+            await callback_query.message.answer_photo(
+                photo=open(error_photo_path, 'rb'),
+                caption=f'❗️ ***Произошла ошибка при обработке компании / комания не найдена:***',
+                parse_mode='MARKDOWN',
+                reply_markup=back_command_keboard
+            )
+
 
     # VIEW PROFILE
     if callback_query.data == 'my_acc':
-        user_nickname = f'👤 Ваш никнейм: <b>{db.get_nickname(callback_query.from_user.id)}</b>'
         user_sub = time_sub_day(db.get_time_sub(callback_query.from_user.id))
         if user_sub == False:
-            user_sub = '❌ На данный момент <b>у вас нет доступа</b>'
-        user_sub = f'\n🔋 Подписка: <b>{user_sub}</b>'
-        await bot.send_message(callback_query.from_user.id, user_nickname + user_sub, parse_mode='html', reply_markup=payment_keyboard1)
+            user_sub = '❌ ***Отсутствует***'
+        user_sub = f'***{user_sub}***'
+
+        profile_photo_path = 'fotos/profile.jpg'
+        await callback_query.message.answer_photo(photo=open(profile_photo_path, "rb"), caption=f'👨‍💻 ***Ваш кабинет:***\n'
+                                                                                        f'• Ваш никнейм: {callback_query.from_user.first_name}\n'
+                                                                                        f'• Ваш ID: {callback_query.message.from_user.id}\n\n'
+                                                                                        f'📊 ***Статистика:***\n'
+                                                                                        f'↳ 👤 Рефералов: ***{db.get_count_refers(callback_query.from_user.id)}***\n'
+                                                                                        f'↳ 🔋 Подписка: ***{user_sub}***\n\n'
+                                                                                        f'💳 ***Баланс:***\n'
+                                                                                        f'↳ 💰 Кошелек: ***{db.get_user_wallet(callback_query.from_user.id)}***\n\n'
+                                                                                        f'👤 ***Реферальная ссылка:***\n'
+                                                                                        f' ↳ ___За каждого приглашенного человека в бота вы получите 10 Дней Доступа!___\n\n'
+                                                                                        f'🚀 Ваша реферальная ссылка: [Ссылка](https://t.me/{BOT_NICKNAME}?start={callback_query.from_user.id})', parse_mode='MARKDOWN', reply_markup=payment_keyboard1)
 
 
     # REFERAL SISTEM
-        # ПОПОЛНЕНИЕ КОШЕЛЬКА
+    # ПОПОЛНЕНИЕ КОШЕЛЬКА
     if callback_query.data == 'pay_the_call':
         bank_photo_path = 'fotos/bank.jpg'
         await callback_query.message.answer_photo(photo=open(bank_photo_path, "rb"),
-                                                      caption=f'🤖 Наш тариф:\n1 месяц = 5 USDT\n6 месяцев = 25 USDT\n1 год = 55 USDT\n\n<b>❗ Чтобы пополнить доступ нужно пополнить кошелек. Вы можете вводить промокоды от разработчика.</b>\n\n💵 Кошелек: <b>{db.get_user_wallet(callback_query.from_user.id)} USDT</b>\n\n<i>Выберите тариф:</i>',
+                                                      caption=f'🤖 Наш тариф:\n1 месяц = 1 USDT\n6 месяцев = 5 USDT\n1 год = 10 USDT\n\n<b>❗ Чтобы пополнить доступ нужно пополнить кошелек. Вы можете вводить промокоды от разработчика.</b>\n\n💵 Кошелек: <b>{db.get_user_wallet(callback_query.from_user.id)} USDT</b>\n\n<i>Выберите тариф:</i>',
                                                       reply_markup=payment_keyboard, parse_mode='html')
 
     if callback_query.data == 'month':
             success_photo_path = 'fotos/success.jpg'
             fail_photo_path = 'fotos/error.jpg'
-            if float(db.get_user_wallet(callback_query.from_user.id)) >= 5:
-                db.set_user_wallet_take(callback_query.from_user.id, 5)
+            if float(db.get_user_wallet(callback_query.from_user.id)) >= 1:
+                db.set_user_wallet_take(callback_query.from_user.id, 1)
                 if db.get_sub_status(callback_query.from_user.id):
                     time_sub = int(time.time() + days_to_seconds(30)) - int(time.time())
                     db.set_time_sub(callback_query.from_user.id, time_sub)
@@ -251,8 +276,8 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
     if callback_query.data == 'halfyear':
             success_photo_path = 'fotos/success.jpg'
             fail_photo_path = 'fotos/error.jpg'
-            if float(db.get_user_wallet(callback_query.from_user.id)) >= 25:
-                db.set_user_wallet_take(callback_query.from_user.id, 25)
+            if float(db.get_user_wallet(callback_query.from_user.id)) >= 5:
+                db.set_user_wallet_take(callback_query.from_user.id, 5)
                 if db.get_sub_status(callback_query.from_user.id):
                     time_sub = int(time.time() + days_to_seconds(180)) - int(time.time())
                     db.set_time_sub(callback_query.from_user.id, time_sub)
@@ -274,8 +299,8 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
     if callback_query.data == 'year':
             success_photo_path = 'fotos/success.jpg'
             fail_photo_path = 'fotos/error.jpg'
-            if float(db.get_user_wallet(callback_query.from_user.id)) >= 55:
-                db.set_user_wallet_take(callback_query.from_user.id, 55)
+            if float(db.get_user_wallet(callback_query.from_user.id)) >= 10:
+                db.set_user_wallet_take(callback_query.from_user.id, 10)
                 if db.get_sub_status(callback_query.from_user.id):
                     time_sub = int(time.time() + days_to_seconds(365)) - int(time.time())
                     db.set_time_sub(callback_query.from_user.id, time_sub)
@@ -379,6 +404,7 @@ async def loot_for_wallet(message: types.Message, state: FSMContext):
         await state.update_data(rent_time=float(message.text))
         user_count = sum
         await state.finish()
+        await state.set_state(Renting.send_photo)
         db.set_rent(message.from_user.id, float(message.text))
         await message.answer_photo(photo=open(bank_photo_path, "rb"), caption=f'🤖 ***Переведите сумму ниже на адрес кошелька:***\n\n'
                              f'`{db.get_wallet(message.from_user.id)}`\n\n'
@@ -387,6 +413,16 @@ async def loot_for_wallet(message: types.Message, state: FSMContext):
 
 
 
+# Остановка state Renting.send_photo
+@dp.callback_query_handler(state=Renting.send_photo)
+async def stop_send_photo(callback_query: types.CallbackQuery, state: FSMContext):
+    success_photo_path = 'fotos/success.jpg'
+
+    await state.finish()
+    await callback_query.message.answer_photo(photo=open(success_photo_path, 'rb'),
+                                              caption="✅ ***Оплата отменена.*** \n\n"
+                                                      "___Нажмите на любую кнопку чтобы продолжить.___",
+                                              parse_mode="MARKDOWN", reply_markup=back_command_keboard)
 
 
 
@@ -420,6 +456,7 @@ async def phone_number_handler(message: types.Message):
         creator = InlineKeyboardButton("🚀 Тг создателя", url=f"https://t.me/+1A9f6ZFMJBgxMjRi")
         back_to_menu = InlineKeyboardButton(text="🔙 Назад", callback_data='back_to_menu')
         cont.add(wh, tg, creator, back_to_menu)
+
         parsed_number = phonenumbers.parse(answer, None)
         if phonenumbers.is_valid_number(parsed_number) is True:
             await message.answer_photo(photo=open(person_photo_path, "rb"), caption=f'📱 (Телефон: {result["number"]})\n'
@@ -527,7 +564,7 @@ async def company_handler(message: types.Message):
     # Проверка, есть ли аргумент после /company
     command_parts = message.text.split(maxsplit=1)
     if len(command_parts) < 2:
-        await message.answer("❗️ Укажите название компании после команды /company")
+        await message.answer_photo(photo=open(error_photo_path, 'rb'), caption="❗️ ***Укажите название компании после команды*** /company", parse_mode='MARKDOWN', reply_markup=back_command_keboard)
         return
 
     try:
@@ -565,6 +602,9 @@ async def company_handler(message: types.Message):
 @dp.message_handler(commands=['inn'])
 async def inn_handler(message: types.Message):
     # ПОЛУЧЕНИЕ ИНФОРМАЦИИ ЧЕРЕЗ ИНН КОМПАНИИ
+
+    error_photo_path = 'fotos/error.jpg'
+    message_photo_path = 'fotos/message.jpg'
     if db.get_sub_status(message.from_user.id):
         try:
             inn_parse = message.text.split(maxsplit=1)
@@ -574,19 +614,27 @@ async def inn_handler(message: types.Message):
             write_inf(result, 'users.json')
             useresult = read_inf('users.json')
             result = [user['value'] for user in useresult]
+
             for i in result:
-                button = InlineKeyboardButton(text=i, callback_data=i)
+                short_company = i[:10]
+                button = InlineKeyboardButton(text=i, callback_data=f'company_{short_company}')
                 company_keyboard.add(button)
+
             back = InlineKeyboardButton(text='🔙 Назад', callback_data='back_to_menu')
             company_keyboard.add(back)
-            await message.answer('🆔 Найдены организации. Выберите группу компаний:', reply_markup=company_keyboard)
-        except Exception:
-            pass
-    else:
-        await message.answer(
-            f'🚨 Доступ закончился! {message.from_user.first_name}, нам нужно это исправить!\n\n',
-            reply_markup=payment_keyboard1)
+            await message.answer_photo(photo=open(message_photo_path, "rb"), caption='🆔 Найдены организации. Выберите группу компаний:', reply_markup=company_keyboard)
 
+        except Exception:
+            await message.answer_photo(
+                photo=open(error_photo_path, 'rb'),
+                caption=f'❗️ ***Произошла ошибка при обработке компании/инн:***',
+                parse_mode='MARKDOWN',
+                reply_markup=back_command_keboard
+            )
+    else:
+        await message.answer_photo(photo=open(error_photo_path, "rb"), caption=
+        f'🚨 ***Доступ закончился! {message.from_user.first_name}, нам нужно это исправить!***', parse_mode='MARKDOWN',
+                                   reply_markup=payment_keyboard1)
 
 
 
@@ -595,15 +643,18 @@ async def inn_handler(message: types.Message):
 
 
 # PAYMENT_PART; TON; TRX; eth;
-@dp.message_handler(regexp='^0x[a-fA-F0-9]{64}$', content_types=['photo'])
-async def handle_transaction_eth(message: types.Message):
+@dp.message_handler(regexp='^0x[a-fA-F0-9]{64}$', content_types=['photo'], state=Renting.send_photo)
+async def handle_transaction_eth(message: types.Message, state: FSMContext):
     global succes_or_invalid, user_count
+    await state.finish(Renting.send_photo)
+
     success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id
     succes_or_invalid = InlineKeyboardMarkup(inline_keyboard=[(
         InlineKeyboardButton(text='✅ Успешно', callback_data=f'success:{user_id}'),
         InlineKeyboardButton(text='❌ Не успешно', callback_data=f'invalid:{user_id}')
     )])
+
     pay_k = succes_or_invalid
     await message.forward(chat_id=GROUP_CHAT_ID)
     await message.answer_photo(photo=open(success_photo_path, "rb"), caption='✅ <b>Отлично! Ваша заявка будет одобрена от 15 минут до 24 часов</b>\n\n'
@@ -611,15 +662,18 @@ async def handle_transaction_eth(message: types.Message):
     await bot.send_message(GROUP_CHAT_ID, f'ETH {db.get_rent(message.from_user.id)} USDT', reply_markup=pay_k)
 
 
-@dp.message_handler(regexp='[a-fA-F0-9]{64}$', content_types=['photo'])
-async def handle_transaction_tron(message: types.Message):
+@dp.message_handler(regexp='[a-fA-F0-9]{64}$', content_types=['photo'], state=Renting.send_photo)
+async def handle_transaction_tron(message: types.Message, state: FSMContext):
     global succes_or_invalid, user_count
+    await state.finish(Renting.send_photo)
+
     success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id
     succes_or_invalid = InlineKeyboardMarkup(inline_keyboard=[(
         InlineKeyboardButton(text='✅ Успешно', callback_data=f'success:{user_id}'),
         InlineKeyboardButton(text='❌ Не успешно', callback_data=f'invalid:{user_id}')
     )])
+
     pay_k = succes_or_invalid
     await message.forward(chat_id=GROUP_CHAT_ID)
     await message.answer_photo(photo=open(success_photo_path, "rb"),
@@ -628,15 +682,18 @@ async def handle_transaction_tron(message: types.Message):
     await bot.send_message(GROUP_CHAT_ID, f'TRX {db.get_rent(message.from_user.id)} USDT', reply_markup=pay_k)
 
 
-@dp.message_handler(regexp='[a-fA-F0-9]{66}$', content_types=['photo'])
-async def handle_transaction_ton(message: types.Message):
+@dp.message_handler(regexp='[a-fA-F0-9]{66}$', content_types=['photo'], state=Renting.send_photo)
+async def handle_transaction_ton(message: types.Message, state: FSMContext):
     global succes_or_invalid, user_count
+    await state.finish(Renting.send_photo)
+
     success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id
     succes_or_invalid = InlineKeyboardMarkup(inline_keyboard=[(
         InlineKeyboardButton(text='✅ Успешно', callback_data=f'success:{user_id}'),
         InlineKeyboardButton(text='❌ Не успешно', callback_data=f'invalid:{user_id}')
     )])
+
     pay_k = succes_or_invalid
     await message.forward(chat_id=GROUP_CHAT_ID)
     await message.answer_photo(photo=open(success_photo_path, "rb"),
