@@ -4,7 +4,6 @@ from datetime import timedelta, datetime
 
 db = sqlite3.connect('database.db')
 
-# СОЗДАНИЕ БД В РУЧНУЮ
 class Database:
     def __init__(self, db_file):
         self.connection = sqlite3.connect(db_file)
