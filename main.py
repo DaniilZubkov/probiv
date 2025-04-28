@@ -22,17 +22,17 @@ from aiogram.types import ParseMode
 from dadata import DadataAsync, Dadata
 
 
-bot = Bot('YOUR BOT TOKEN')
-token = 'API DADATA TOKEN'
-secret = 'DADATA SECRET'
+bot = Bot('7783210062:AAFC_H7lRdIPdcSrdbII_ETa0PY1pcTM25M')
+token = 'e06e442308d4e5f6af20defac93ff1cf2683cd40'
+secret = '195254f0af3eb4a629fb543a460bf49418ccdedc'
 db = Database('database.db')
 
 
 dp = Dispatcher(bot, storage=MemoryStorage())
 dadata = DadataAsync(token, secret)
 dadata_for_inn = Dadata(token)
-GROUP_CHAT_ID = 'YOUR CHAT ID'
-BOT_NICKNAME = 'YOUR BOT NICKNAME'
+GROUP_CHAT_ID = -1002192140565
+BOT_NICKNAME = 'ultra_parcer_robot'
 
 
 
@@ -70,6 +70,9 @@ def time_sub_day(get_time):
 
 @dp.message_handler(commands=['start'])
 async def start_command(message: types.Message):
+    # СОЗДАЕМ ТАБЛИЦУ ПЕРЕД СТАРТОМ
+    db.create_tables()
+
     greeting_photo_path = 'fotos/lightning.jpg'
     await message.answer_photo(photo=open(greeting_photo_path, "rb"), caption='Откройте мир возожностей с нами - мы анализируем все, что есть в сети интернет превращая открытые источники в знания для поиска информации\n\n'
                          '<b>Выберите действие:</b>', parse_mode='html', reply_markup=main_keyboard)
@@ -147,9 +150,6 @@ async def start_command(message: types.Message):
 
 @dp.callback_query_handler(lambda query: True)
 async def callback_handler(callback_query: types.CallbackQuery, state: FSMContext):
-    global current_time_sub
-    global cost
-    global WALLET
     # REQUEST COMMANDS
 
     if callback_query.data == 'requests_commands':
@@ -165,10 +165,11 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
 
     # BACK TO MENU
     if callback_query.data == 'back_to_menu':
+        greeting_photo_path = 'fotos/lightning.jpg'
         await bot.delete_message(callback_query.from_user.id, callback_query.message.message_id)
-        await callback_query.message.answer(
-                'Откройте мир возможностей с нами - мы анализируем все, что есть в сети интернет превращая открытые источники в знания для поиска информации\n\n'
-                '<b>Выберите действие:</b>', parse_mode='html', reply_markup=main_keyboard)
+        await callback_query.message.answer_photo(photo=open(greeting_photo_path, "rb"),
+                                   caption='Откройте мир возожностей с нами - мы анализируем все, что есть в сети интернет превращая открытые источники в знания для поиска информации\n\n'
+                                           '<b>Выберите действие:</b>', parse_mode='html', reply_markup=main_keyboard)
 
     # COMPANY SEARCH
     if callback_query.data.startswith('company_'):
@@ -239,6 +240,16 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
                                                                                         f'👤 ***Реферальная ссылка:***\n'
                                                                                         f' ↳ ___За каждого приглашенного человека в бота вы получите 10 Дней Доступа!___\n\n'
                                                                                         f'🚀 Ваша реферальная ссылка: [Ссылка](https://t.me/{BOT_NICKNAME}?start={callback_query.from_user.id})', parse_mode='MARKDOWN', reply_markup=payment_keyboard1)
+
+
+    if callback_query.data == 'partners_refs':
+        refferal_photo_path = 'fotos/invite.jpg'
+        await callback_query.message.answer_photo(photo=open(refferal_photo_path, 'rb'),
+                                                  caption=f'🧑‍🧑‍🧒 <b>Партнёры</b> — это люди, которые перешли по вашей ссылке и начали пользоваться данным ботом.\n\n'
+                                                          f'🤖 <b>За каждого приглашенного человека в бота вы получите 1 USDT на кошелек!</b>\n\n🚀 <b>Ваша реферальная ссылка:</b> https://t.me/{BOT_NICKNAME}?start={callback_query.from_user.id}\n\n'
+                                                          f'👥 <b>Вы пригласили партнеров:</b> {db.get_count_refers(callback_query.from_user.id)}\n\n'
+                                                          f'<i>Приводи друзей - зарабатывайте вместе!</i>',
+                                                  parse_mode='html', reply_markup=back_command_keboard)
 
 
     # REFERAL SISTEM
@@ -397,12 +408,9 @@ def calculate_sum_from_rubs_to_dollars(num):
 
 @dp.message_handler(state=Renting.rent_time)
 async def loot_for_wallet(message: types.Message, state: FSMContext):
-    global cost, user_count, sum
     bank_photo_path = 'fotos/bank.jpg'
     if message.text.isdigit():
-        sum = float(message.text)
         await state.update_data(rent_time=float(message.text))
-        user_count = sum
         await state.finish()
         await state.set_state(Renting.send_photo)
         db.set_rent(message.from_user.id, float(message.text))
@@ -646,7 +654,7 @@ async def inn_handler(message: types.Message):
 @dp.message_handler(regexp='^0x[a-fA-F0-9]{64}$', content_types=['photo'], state=Renting.send_photo)
 async def handle_transaction_eth(message: types.Message, state: FSMContext):
     global succes_or_invalid, user_count
-    await state.finish(Renting.send_photo)
+    await state.finish()
 
     success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id
@@ -665,7 +673,7 @@ async def handle_transaction_eth(message: types.Message, state: FSMContext):
 @dp.message_handler(regexp='[a-fA-F0-9]{64}$', content_types=['photo'], state=Renting.send_photo)
 async def handle_transaction_tron(message: types.Message, state: FSMContext):
     global succes_or_invalid, user_count
-    await state.finish(Renting.send_photo)
+    await state.finish()
 
     success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id
@@ -685,7 +693,7 @@ async def handle_transaction_tron(message: types.Message, state: FSMContext):
 @dp.message_handler(regexp='[a-fA-F0-9]{66}$', content_types=['photo'], state=Renting.send_photo)
 async def handle_transaction_ton(message: types.Message, state: FSMContext):
     global succes_or_invalid, user_count
-    await state.finish(Renting.send_photo)
+    await state.finish()
 
     success_photo_path = 'fotos/success.jpg'
     user_id = message.from_user.id

@@ -11,6 +11,27 @@ class Database:
         self.cursor = self.connection.cursor()
 
 
+
+    def create_tables(self):
+        cursor = self.connection.cursor()
+
+        # Создаем таблицу users
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY NOT NULL,
+        user_id INTEGER NOT NULL,
+        nickname TEXT,
+        time_sub NOT NULL DEFAULT 0,
+        signup VARCHAR(60) DEFAULT 'setnickname',
+        referrer_id INTEGER,
+        referal_count INTEGER NOT NULL DEFAULT 0,
+        user_wallet INTEGER NOT NULL DEFAULT 0,
+        wallet TEXT,
+        network TEXT,
+        rent INTEGER)
+        ''')
+
+
     def add_user(self, user_id, referrer_id=None):
         with self.connection:
             if referrer_id != None:
