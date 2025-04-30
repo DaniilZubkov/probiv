@@ -13,4 +13,7 @@ git clone https://github.com/DaniilZubkov/probiv.git
 ```
 pip install -r requirements.txt
 ```
-
+3. Добавьте пустой файл user_photos
+```
+mkdir user_photos
+```
