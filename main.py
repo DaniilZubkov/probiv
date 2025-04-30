@@ -23,17 +23,17 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dadata import DadataAsync, Dadata
 
 
-bot = Bot('7783210062:AAFC_H7lRdIPdcSrdbII_ETa0PY1pcTM25M')
-token = 'e06e442308d4e5f6af20defac93ff1cf2683cd40'
-secret = '195254f0af3eb4a629fb543a460bf49418ccdedc'
+bot = Bot('YOUR BOT TOKEN')
+token = 'API DADATA TOKEN'
+secret = 'API SECRET KEY'
 db = Database('database.db')
 
 
 dp = Dispatcher(storage=MemoryStorage())
 dadata = DadataAsync(token, secret)
 dadata_for_inn = Dadata(token)
-GROUP_CHAT_ID = -1002192140565
-BOT_NICKNAME = 'ultra_parcer_robot'
+GROUP_CHAT_ID = 'GROUP CHAT ID'
+BOT_NICKNAME = 'YOUR BOT NICKNAME'
 
 
 
