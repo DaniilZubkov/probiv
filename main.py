@@ -219,11 +219,6 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
                     builder.adjust(1)
                     return builder.as_markup()
 
-                # buttons = InlineKeyboardMarkup(row_width=1)
-                # creator = InlineKeyboardButton("🚀 Тг создателя", url=f"https://t.me/+1A9f6ZFMJBgxMjRi")
-                # back_to_menu = InlineKeyboardButton(text="🔙 Назад", callback_data='back_to_menu')
-                # buttons.add(creator, back_to_menu)
-
                 await callback_query.message.answer_photo(photo=FSInputFile(company_photo_path), caption=f'🛠️ ***Компания:*** {company_name}\n'
                                                     f'├ ***Адрес предприятия:*** `{address}`\n'
                                                     f'├ ***КПП компании:*** `{kpp}`\n'
@@ -455,7 +450,7 @@ async def stop_send_photo(callback_query: types.CallbackQuery, state: FSMContext
 async def transaction_handle(message: types.Message, state: FSMContext):
     error_photo_path = 'fotos/error.jpg'
 
-    # ПРОВРКА ХЭША: ETH;
+    # ПРОВРКА ХЭША
     try:
         if message.caption is None:
             await message.answer_photo(photo=FSInputFile(error_photo_path),
@@ -675,7 +670,6 @@ async def company_handler(message: types.Message):
         result = await dadata.suggest("party", company_name)
         companies = [item['value'] for item in result]
 
-        # company_keyboard = InlineKeyboardMarkup(row_width=1)
         company_keyboard = InlineKeyboardBuilder()
         for company in companies:
             short_company = company[:10]
@@ -714,7 +708,6 @@ async def inn_handler(message: types.Message):
         try:
             inn_parse = message.text.split(maxsplit=1)
             answer = inn_parse[1]
-            # company_keyboard = InlineKeyboardMarkup(row_width=1)
             company_keyboard = InlineKeyboardBuilder()
             result = dadata_for_inn.find_by_id("party", answer)
             write_inf(result, 'users.json')
