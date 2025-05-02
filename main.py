@@ -254,7 +254,7 @@ async def callback_handler(callback_query: types.CallbackQuery, state: FSMContex
                                                                                         f'↳ 👤 Рефералов: ***{db.get_count_refers(callback_query.from_user.id)}***\n'
                                                                                         f'↳ 🔋 Подписка: ***{user_sub}***\n\n'
                                                                                         f'💳 ***Баланс:***\n'
-                                                                                        f'↳ 💰 Кошелек: ***{db.get_user_wallet(callback_query.from_user.id)}***\n\n'
+                                                                                        f'↳ 💰 Кошелек: ***{db.get_user_wallet(callback_query.from_user.id)} USDT***\n\n'
                                                                                         f'👤 ***Реферальная ссылка:***\n'
                                                                                         f' ↳ ___За каждого приглашенного человека в бота вы получите 10 Дней Доступа!___\n\n'
                                                                                         f'🚀 Ваша реферальная ссылка: [Ссылка](https://t.me/{BOT_NICKNAME}?start={callback_query.from_user.id})', parse_mode='MARKDOWN', reply_markup=payment_keyboard1())
